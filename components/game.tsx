@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { formatDuration, formatPercent } from "@/lib/format";
+import { formatDuration } from "@/lib/format";
 import {
   ERRORS_PER_PENALTY_LINE,
   FOCUS_PENALTY_LINES,
@@ -202,20 +202,11 @@ const Intro = ({
 );
 
 const Done = ({ view }: { view: SessionView }) => (
-  <Panel title="Fertig.">
+  <Panel title="Geschafft.">
     <p>
-      Du bekommst {view.cans} Dosen. Keine davon verdient. Dafür hast du{" "}
-      {view.completed} Zeilen getippt.
+      Du hast dir deine {view.cans} Dosen hart erarbeitet. Sie gehören dir.
+      Genieß sie.
     </p>
-    <StatGrid>
-      <Stat
-        label="Zeit"
-        value={formatDuration((view.finishedAt ?? 0) - (view.startedAt ?? 0))}
-      />
-      <Stat label="Genauigkeit" value={formatPercent(view.accuracy)} />
-      <Stat label="Fehler" value={view.errors.toString()} />
-      <Stat label="Strafzeilen" value={view.penalties.toString()} />
-    </StatGrid>
   </Panel>
 );
 
