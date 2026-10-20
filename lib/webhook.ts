@@ -22,9 +22,9 @@ const messageFor = (s: Session, outcome: Exclude<Outcome, null>): string => {
   const time = formatDuration((s.finishedAt ?? 0) - (s.startedAt ?? 0));
 
   return [
-    `**${s.name}** ist fertig.`,
+    `**${s.name}** ist fertig und bekommt ${s.targetCans} Dosen.`,
     `Zeit: ${time}`,
-    `Zeilen: ${s.completed} (davon ${penaltyLines(s)} Strafzeilen)`,
+    `Zeilen getippt: ${s.completed} (davon ${penaltyLines(s)} Strafzeilen)`,
     `Fehler: ${s.errors} · Genauigkeit: ${formatPercent(accuracyOf(s))}`,
     `Leerlauf: ${s.idles + s.absences} · Seite verlassen: ${s.focusLosses} · Nachgeschaut: ${s.peeks}`,
   ].join("\n");

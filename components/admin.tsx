@@ -25,6 +25,7 @@ const COLUMNS = [
   "Name",
   "Status",
   "Dosen",
+  "Zeilen",
   "Strafzeilen",
   "Fehler",
   "Genauigkeit",
@@ -34,6 +35,7 @@ const COLUMNS = [
   "Zu schnell",
   "Zeit",
   "Link",
+  "",
 ];
 
 const createdSchema = z.object({ session: summarySchema });
@@ -81,6 +83,51 @@ const postJson = async <T,>(
   } catch {
     return { data: null, error: "Keine Verbindung." };
   }
+};
+
+// Two clicks to delete, so a session is never removed by accident.
+const DeleteButton = ({ id }: { id: string }) => {
+  const router = useRouter();
+  const [armed, setArmed] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const remove = async () => {
+    try {
+      const response = await fetch(`/api/admin/sessions/${id}`, {
+        method: "DELETE",
+      });
+
+      setFailed(!response.ok);
+
+      if (response.ok) {
+        router.refresh();
+      }
+    } catch {
+      setFailed(true);
+    }
+  };
+
+  if (failed) {
+    return <span className="text-danger">Fehler</span>;
+  }
+
+  return (
+    <Button
+      onBlur={() => {
+        setArmed(false);
+      }}
+      onClick={() => {
+        if (armed) {
+          void remove();
+        } else {
+          setArmed(true);
+        }
+      }}
+      variant="link"
+    >
+      {armed ? "Wirklich löschen?" : "Löschen"}
+    </Button>
+  );
 };
 
 const Field = ({
@@ -198,7 +245,7 @@ const CreateForm = () => {
         <Field label="Name">
           {(id) => <Input id={id} maxLength={60} name="name" required />}
         </Field>
-        <Field label="Dosen (Zeilen)">
+        <Field label="Dosen (so viele Zeilen, plus Strafzeilen)">
           {(id) => (
             <Input
               defaultValue={DEFAULT_TARGET_CANS}
@@ -256,6 +303,9 @@ const SessionRow = ({ session: s }: { session: SessionSummary }) => (
     </td>
     <td className="px-3 py-2.5">{PHASE_LABELS[s.phase]}</td>
     <td className="px-3 py-2.5">
+      {s.phase === "done" ? s.targetCans : 0} / {s.targetCans}
+    </td>
+    <td className="px-3 py-2.5">
       {s.completed} / {s.targetCans + s.penalties}
     </td>
     <td className="px-3 py-2.5">{s.penalties}</td>
@@ -277,6 +327,9 @@ const SessionRow = ({ session: s }: { session: SessionSummary }) => (
       >
         öffnen
       </a>
+    </td>
+    <td className="px-3 py-2.5">
+      <DeleteButton id={s.id} />
     </td>
   </tr>
 );

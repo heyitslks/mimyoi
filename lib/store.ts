@@ -11,6 +11,7 @@ interface Store {
   get: (id: string) => Promise<Session | null>;
   list: () => Promise<Session[]>;
   put: (session: Session) => Promise<void>;
+  remove: (id: string) => Promise<void>;
 }
 
 const redisStore = (redis: Redis): Store => ({
@@ -43,6 +44,13 @@ const redisStore = (redis: Redis): Store => ({
       .zadd(INDEX_KEY, { member: session.id, score: session.createdAt })
       .exec();
   },
+  remove: async (id) => {
+    await redis
+      .pipeline()
+      .del(SESSION_PREFIX + id)
+      .zrem(INDEX_KEY, id)
+      .exec();
+  },
 });
 
 // Local development only, so the app runs without a database.
@@ -57,6 +65,10 @@ const memoryStore = (): Store => {
       ),
     put: async (session) => {
       sessions.set(session.id, session);
+      await Promise.resolve();
+    },
+    remove: async (id) => {
+      sessions.delete(id);
       await Promise.resolve();
     },
   };

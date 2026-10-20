@@ -9,6 +9,8 @@ export type Phase = z.infer<typeof phaseSchema>;
 /** What the player's browser gets to see. */
 export const viewSchema = z.object({
   accuracy: z.number(),
+  /** Cans awarded at once when everything is done. Penalties never add cans. */
+  cans: z.number(),
   completed: z.number(),
   errors: z.number(),
   fadePrompt: z.boolean(),

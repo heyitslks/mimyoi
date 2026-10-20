@@ -1,12 +1,12 @@
 # Mimi
 
-A strict German typing task. Every exactly typed line earns one can. One wrong character restarts the line, and errors, idling, leaving the tab and peeking all add extra lines. All state lives on the server, so reloading or closing the page changes nothing.
+A strict German typing task. The number of cans you set is the number of lines to type, and the cans are only earned all at once when every line (penalty lines included) and the final sentence are done. Penalty lines never add cans. One wrong character restarts the line, and errors, idling, leaving the tab and peeking all add extra lines. All state lives on the server, so reloading or closing the page changes nothing.
 
 ## How it works
 
 1. Open `/admin`, log in with `ADMIN_SECRET`, enter a name, the number of cans, and optionally a Discord webhook, the fading prompt and hard mode.
 2. You get a unique link like `https://your-app.vercel.app/s/k3Fq…`. Send it.
-3. Watch progress on `/admin`. The webhook posts when the session starts and when it finishes, with the final stats.
+3. Watch progress on `/admin`, and delete a session there (two clicks) to make its link stop working. The webhook posts when the session starts and when it finishes, with the final stats.
 
 ### Rules (enforced on the server)
 
@@ -46,6 +46,10 @@ Discord webhooks are set per session on `/admin` (Discord: Server settings → I
 curl -X POST https://your-app.vercel.app/api/admin/sessions \
   -H "Authorization: Bearer $ADMIN_SECRET" -H "Content-Type: application/json" \
   -d '{"name":"Mimi","targetCans":20,"hardMode":false,"webhookUrl":""}'
+
+# Delete a session
+curl -X DELETE https://your-app.vercel.app/api/admin/sessions/<id> \
+  -H "Authorization: Bearer $ADMIN_SECRET"
 
 # List sessions with stats
 curl https://your-app.vercel.app/api/admin/sessions \

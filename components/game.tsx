@@ -165,8 +165,9 @@ const Intro = ({
 }) => (
   <Panel title={`Hallo ${view.name}.`}>
     <p>
-      Für jede Dose tippst du eine Zeile. Exakt. Ein falsches Zeichen und die
-      Zeile fängt von vorn an. Du brauchst {view.required} Zeilen.
+      Du tippst {view.required} Zeilen. Exakt. Ein falsches Zeichen und die
+      Zeile fängt von vorn an. Erst wenn alle Zeilen und der letzte Satz
+      geschafft sind, bekommst du deine {view.cans} Dosen. Vorher keine.
     </p>
     <ul className="text-muted list-disc space-y-1 pl-5">
       {view.fadePrompt ? (
@@ -179,7 +180,10 @@ const Intro = ({
       {view.hardMode ? (
         <li>Du siehst nur die drei Wörter. Den Satz baust du selbst.</li>
       ) : null}
-      <li>Alle {ERRORS_PER_PENALTY_LINE} Fehler kommt eine Zeile dazu.</li>
+      <li>
+        Alle {ERRORS_PER_PENALTY_LINE} Fehler kommt eine Zeile dazu. Mehr Dosen
+        gibt es dafür nicht.
+      </li>
       <li>
         15 Sekunden nichts tippen: +{IDLE_PENALTY_LINES} Zeilen. Tab wechseln
         oder Fenster verlassen: +{FOCUS_PENALTY_LINES} Zeilen.
@@ -199,7 +203,10 @@ const Intro = ({
 
 const Done = ({ view }: { view: SessionView }) => (
   <Panel title="Fertig.">
-    <p>{view.completed} Dosen. Keine davon verdient.</p>
+    <p>
+      Du bekommst {view.cans} Dosen. Keine davon verdient. Dafür hast du{" "}
+      {view.completed} Zeilen getippt.
+    </p>
     <StatGrid>
       <Stat
         label="Zeit"
@@ -332,7 +339,7 @@ const Playing = ({
   return (
     <section className="flex w-full max-w-4xl flex-col gap-8">
       <StatGrid>
-        <Stat label="Dosen verdient" value={view.completed.toString()} />
+        <Stat label="Zeilen geschafft" value={view.completed.toString()} />
         <Stat label="Noch offen" value={view.remaining.toString()} />
         <Stat label="Fehler" value={view.errors.toString()} />
         <Stat

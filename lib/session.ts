@@ -363,6 +363,7 @@ export const toView = (s: Session, now: number): SessionView => {
 
   return {
     accuracy: accuracyOf(s),
+    cans: s.targetCans,
     completed: s.completed,
     errors: s.errors,
     fadePrompt: s.fadePrompt,
