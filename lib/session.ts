@@ -21,6 +21,8 @@ export const sessionSchema = z.object({
   correctChars: z.number().int().nonnegative(),
   createdAt: z.number(),
   errors: z.number().int().nonnegative(),
+  // Sessions created before this option existed keep the prompt visible.
+  fadePrompt: z.boolean().default(false),
   finishedAt: z.number().nullable(),
   focusLosses: z.number().int().nonnegative(),
   hardMode: z.boolean(),
@@ -83,6 +85,7 @@ export interface Applied {
  * @returns The new session.
  */
 export const createSession = (input: {
+  fadePrompt: boolean;
   hardMode: boolean;
   id: string;
   name: string;
@@ -97,6 +100,7 @@ export const createSession = (input: {
   correctChars: 0,
   createdAt: input.now,
   errors: 0,
+  fadePrompt: input.fadePrompt,
   finishedAt: null,
   focusLosses: 0,
   hardMode: input.hardMode,
@@ -262,6 +266,11 @@ const applyRunning = (
     }
 
     case "peek": {
+      // Nothing to peek at when the prompt never fades.
+      if (!s.fadePrompt) {
+        return unchanged(s);
+      }
+
       return unchanged({ ...s, peeks: s.peeks + 1 }, [
         `Nochmal angeschaut. +${PEEK_PENALTY_LINES} Zeile.`,
       ]);
@@ -356,6 +365,7 @@ export const toView = (s: Session, now: number): SessionView => {
     accuracy: accuracyOf(s),
     completed: s.completed,
     errors: s.errors,
+    fadePrompt: s.fadePrompt,
     finishedAt: s.finishedAt,
     hardMode: s.hardMode,
     name: s.name,

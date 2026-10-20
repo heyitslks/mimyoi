@@ -169,10 +169,13 @@ const Intro = ({
       Zeile fängt von vorn an. Du brauchst {view.required} Zeilen.
     </p>
     <ul className="text-muted list-disc space-y-1 pl-5">
-      <li>
-        Der Satz verschwindet nach drei Sekunden oder beim ersten Tastendruck.
-      </li>
-      <li>Jede Zeile ist anders. Merk sie dir.</li>
+      {view.fadePrompt ? (
+        <li>
+          Der Satz verschwindet nach drei Sekunden oder beim ersten Tastendruck.
+          Merk ihn dir.
+        </li>
+      ) : null}
+      <li>Jede Zeile ist anders.</li>
       {view.hardMode ? (
         <li>Du siehst nur die drei Wörter. Den Satz baust du selbst.</li>
       ) : null}
@@ -267,8 +270,10 @@ const Playing = ({
   const away = useRef(false);
   const field = useRef<HTMLInputElement | null>(null);
   const now = useClock(online, skew);
+
   // A new line always starts visible, so the flag only counts for its line.
-  const promptVisible = hidden.key !== lineKey || !hidden.value;
+  const promptVisible =
+    !view.fadePrompt || hidden.key !== lineKey || !hidden.value;
 
   useIdleAndHeartbeat(online, send, lastKeyAt, away);
   useFocusPenalty(online, send, lastKeyAt, away);
@@ -352,9 +357,13 @@ const Playing = ({
         />
       </div>
       <div className="flex min-h-6 items-center justify-between">
-        <Button disabled={promptVisible} onClick={handlePeek} variant="link">
-          Nochmal zeigen (+{PEEK_PENALTY_LINES} Zeile)
-        </Button>
+        {view.fadePrompt ? (
+          <Button disabled={promptVisible} onClick={handlePeek} variant="link">
+            Nochmal zeigen (+{PEEK_PENALTY_LINES} Zeile)
+          </Button>
+        ) : (
+          <span />
+        )}
         {online ? null : (
           <span className="text-danger text-sm">Keine Verbindung.</span>
         )}
