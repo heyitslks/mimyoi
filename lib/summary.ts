@@ -20,6 +20,7 @@ export const summarize = (
   createdAt: s.createdAt,
   elapsed: s.startedAt === null ? null : (s.finishedAt ?? now) - s.startedAt,
   errors: s.errors,
+  fadePrompt: s.fadePrompt,
   finishedAt: s.finishedAt,
   focusLosses: s.focusLosses,
   hardMode: s.hardMode,

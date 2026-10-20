@@ -9,6 +9,7 @@ import { summarize } from "@/lib/summary";
 import { isDiscordWebhook } from "@/lib/webhook";
 
 const createSchema = z.object({
+  fadePrompt: z.boolean().default(false),
   hardMode: z.boolean().default(false),
   name: z.string().trim().min(1, "Name fehlt.").max(60),
   targetCans: z
@@ -53,7 +54,7 @@ const listSessions = async (request: Request): Promise<Response> => {
 
 /**
  * Creates a session and returns its unique link.
- * @param request - Body is `{ name, targetCans, hardMode, webhookUrl }`.
+ * @param request - Body is `{ name, targetCans, fadePrompt, hardMode, webhookUrl }`.
  * @returns The new session summary including its URL, 400, or 401.
  */
 const createNewSession = async (request: Request): Promise<Response> => {
@@ -69,9 +70,10 @@ const createNewSession = async (request: Request): Promise<Response> => {
     return Response.json({ error: message }, { status: 400 });
   }
 
-  const { hardMode, name, targetCans, webhookUrl } = parsed.data;
+  const { fadePrompt, hardMode, name, targetCans, webhookUrl } = parsed.data;
 
   const session = createSession({
+    fadePrompt,
     hardMode,
     id: newSessionId(),
     name,

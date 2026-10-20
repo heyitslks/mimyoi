@@ -42,6 +42,7 @@ const errorSchema = z.object({ error: z.string() });
 const loginFormSchema = z.object({ secret: z.string() });
 
 const createFormSchema = z.object({
+  fadePrompt: z.literal("on").optional(),
   hardMode: z.literal("on").optional(),
   name: z.string(),
   targetCans: z.coerce.number(),
@@ -164,12 +165,13 @@ const CreateForm = () => {
 
     const formElement = event.currentTarget;
 
-    const { hardMode, name, targetCans, webhookUrl } = readForm(
+    const { fadePrompt, hardMode, name, targetCans, webhookUrl } = readForm(
       createFormSchema,
       formElement
     );
 
     const result = await postJson(createdSchema, "/api/admin/sessions", {
+      fadePrompt: fadePrompt === "on",
       hardMode: hardMode === "on",
       name,
       targetCans,
@@ -220,6 +222,11 @@ const CreateForm = () => {
           )}
         </Field>
         <label className="text-muted flex items-center gap-2 text-sm">
+          <input name="fadePrompt" type="checkbox" />
+          Satz ausblenden: verschwindet nach 3 Sekunden oder beim ersten
+          Tastendruck
+        </label>
+        <label className="text-muted flex items-center gap-2 text-sm">
           <input name="hardMode" type="checkbox" />
           Schwer: nur die drei Wörter zeigen
         </label>
@@ -244,6 +251,7 @@ const SessionRow = ({ session: s }: { session: SessionSummary }) => (
   <tr className="border-border border-b">
     <td className="px-3 py-2.5">
       {s.name}
+      {s.fadePrompt ? " (ausblenden)" : ""}
       {s.hardMode ? " (schwer)" : ""}
     </td>
     <td className="px-3 py-2.5">{PHASE_LABELS[s.phase]}</td>

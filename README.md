@@ -1,10 +1,10 @@
 # Mimi
 
-A strict German typing task. Every exactly typed line earns one can. The prompt fades after three seconds, one wrong character restarts the line, and errors, idling, leaving the tab and peeking all add extra lines. All state lives on the server, so reloading or closing the page changes nothing.
+A strict German typing task. Every exactly typed line earns one can. One wrong character restarts the line, and errors, idling, leaving the tab and peeking all add extra lines. All state lives on the server, so reloading or closing the page changes nothing.
 
 ## How it works
 
-1. Open `/admin`, log in with `ADMIN_SECRET`, enter a name, the number of cans and optionally a Discord webhook.
+1. Open `/admin`, log in with `ADMIN_SECRET`, enter a name, the number of cans, and optionally a Discord webhook, the fading prompt and hard mode.
 2. You get a unique link like `https://your-app.vercel.app/s/k3Fq…`. Send it.
 3. Watch progress on `/admin`. The webhook posts when the session starts and when it finishes, with the final stats.
 
@@ -17,7 +17,7 @@ A strict German typing task. Every exactly typed line earns one can. The prompt 
 | Every 2 errors | +1 line |
 | 15 s without a keystroke | +2 lines |
 | Leaving the tab or window (reload included), or 20 s without any ping | +2 lines |
-| "Nochmal zeigen" (show the prompt again) | +1 line |
+| Fading prompt (optional, off by default) | The sentence disappears after 3 s or on the first keystroke. "Nochmal zeigen" shows it again for +1 line. |
 | Final line | `Ich habe diese Dosen nicht verdient. Sie sind ein Privileg.` must be typed perfectly. Penalties earned during it send you back to lines. |
 
 Hard mode (checkbox on `/admin`) shows only the three slot values; the sentence has to be built from memory. Only the most recently opened tab can play; older tabs get locked out.
