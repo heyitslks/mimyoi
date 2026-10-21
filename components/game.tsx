@@ -179,7 +179,7 @@ const Intro = ({
       ) : null}
       <li>Jede Zeile ist anders.</li>
       {view.hardMode ? (
-        <li>Du siehst nur die drei Wörter. Den Satz baust du selbst.</li>
+        <li>Du siehst nur die Bausteine. Den Satz baust du selbst.</li>
       ) : null}
       <li>
         Alle {ERRORS_PER_PENALTY_LINE} Fehler kommt eine Zeile dazu. Mehr Dosen
@@ -226,6 +226,7 @@ const Prompt = ({ view, visible }: { view: SessionView; visible: boolean }) => (
     ) : null}
     {view.hardMode && view.parts !== null ? (
       <p className="flex flex-wrap gap-x-8 gap-y-2 font-mono text-xl sm:text-3xl">
+        <span>{view.parts.subject}</span>
         <span>{view.parts.slotA}</span>
         <span>{view.parts.slotB}</span>
         <span>{view.parts.title}</span>

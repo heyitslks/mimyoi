@@ -181,7 +181,7 @@ export const accuracyOf = (s: Session): number => {
 };
 
 const targetOf = (s: Session): string =>
-  phaseOf(s) === "reflection" ? REFLECTION_LINE : lineFor(s.completed);
+  phaseOf(s) === "reflection" ? REFLECTION_LINE : lineFor(s.id, s.completed);
 
 const isRunning = (s: Session): boolean => {
   const phase = phaseOf(s);
@@ -448,7 +448,7 @@ export const toView = (s: Session, now: number): SessionView => {
     hardMode: s.hardMode,
     name: s.name,
     now,
-    parts: phase === "lines" ? partsForLine(s.completed) : null,
+    parts: phase === "lines" ? partsForLine(s.id, s.completed) : null,
     penalties: penaltyLines(s),
     phase,
     remaining: Math.max(0, required - s.completed),

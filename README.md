@@ -12,7 +12,7 @@ A strict German typing task. The number of cans you set is the number of lines t
 
 | What | Effect |
 | --- | --- |
-| One line | `Ich habe kein Recht auf [A]. Alles, was ich habe, ist ein [B] Privileg von [Titel].` All three slots rotate after every completed line. |
+| One line | `Ich habe kein Recht auf [A]. Alles, was ich habe, ist ein [B] Privileg von [Titel].` The subject is picked too: `Ich habe …`, `Dieses Pet hat … was es hat …` or `Diese Sub hat … was sie hat …`. Every part is picked at random for each line, fixed per session and line, so reloading never rerolls it. |
 | Wrong character, paste attempt, or a line typed faster than humanly possible | Counts as an error, the line restarts |
 | Every 2 errors | +1 line. Wrong input within 1 s of an error (an autocorrect swap plus its space, for example) counts as that same error. |
 | 15 s without a keystroke | +2 lines |
@@ -20,7 +20,7 @@ A strict German typing task. The number of cans you set is the number of lines t
 | Fading prompt (optional, off by default) | The sentence disappears after 3 s or on the first keystroke. "Nochmal zeigen" shows it again for +1 line. |
 | Final line | `Ich habe diese Dosen nicht verdient. Sie sind ein Privileg.` must be typed perfectly. Penalties earned during it send you back to lines. |
 
-Hard mode (checkbox on `/admin`) shows only the three slot values; the sentence has to be built from memory. Only the most recently opened tab can play; older tabs get locked out.
+Hard mode (checkbox on `/admin`) shows only the picked parts (subject and the three slots); the sentence has to be built from memory. Only the most recently opened tab can play; older tabs get locked out.
 
 ## Deploy on Vercel
 

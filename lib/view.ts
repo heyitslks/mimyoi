@@ -19,7 +19,12 @@ export const viewSchema = z.object({
   name: z.string(),
   now: z.number(),
   parts: z
-    .object({ slotA: z.string(), slotB: z.string(), title: z.string() })
+    .object({
+      slotA: z.string(),
+      slotB: z.string(),
+      subject: z.string(),
+      title: z.string(),
+    })
     .nullable(),
   penalties: z.number(),
   phase: phaseSchema,
