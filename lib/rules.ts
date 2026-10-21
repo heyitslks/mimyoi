@@ -28,3 +28,9 @@ export const MIN_MS_PER_CHAR = 35;
 export const DEFAULT_TARGET_CANS = 10;
 
 export const MAX_TARGET_CANS = 500;
+
+/**
+ * Autocorrect replaces a whole word in one go, which can arrive as several
+ * wrong inputs. Everything within this window after an error is one error.
+ */
+export const ERROR_GRACE_MS = 1000;

@@ -6,7 +6,7 @@ A strict German typing task. The number of cans you set is the number of lines t
 
 1. Open `/admin`, log in with `ADMIN_SECRET`, enter a name, the number of cans, and optionally a Discord webhook, the fading prompt and hard mode.
 2. You get a unique link like `https://your-app.vercel.app/s/k3Fq…`. Send it.
-3. Watch progress on `/admin`, and delete a session there (two clicks) to make its link stop working. The webhook posts when the session starts and when it finishes, with the final stats.
+3. Watch progress on `/admin`, and delete a session there (two clicks) to make its link stop working. The webhook posts every step: start, each finished line, leaving and coming back, idling, every penalty line from errors, paste or too-fast attempts, reaching the final sentence, and the finish with the final stats.
 
 ### Rules (enforced on the server)
 
@@ -14,7 +14,7 @@ A strict German typing task. The number of cans you set is the number of lines t
 | --- | --- |
 | One line | `Ich habe kein Recht auf [A]. Alles, was ich habe, ist ein [B] Privileg von [Titel].` All three slots rotate after every completed line. |
 | Wrong character, paste attempt, or a line typed faster than humanly possible | Counts as an error, the line restarts |
-| Every 2 errors | +1 line |
+| Every 2 errors | +1 line. Wrong input within 1 s of an error (an autocorrect swap plus its space, for example) counts as that same error. |
 | 15 s without a keystroke | +2 lines |
 | Leaving the tab or window (reload included), or 20 s without any ping | +2 lines |
 | Fading prompt (optional, off by default) | The sentence disappears after 3 s or on the first keystroke. "Nochmal zeigen" shows it again for +1 line. |

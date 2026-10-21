@@ -70,7 +70,8 @@ const useIdleAndHeartbeat = (
     }, 1000);
 
     const beat = setInterval(() => {
-      if (running && document.visibilityState === "visible") {
+      // While away, a ping would count as coming back.
+      if (running && !away.current && document.visibilityState === "visible") {
         void send({ type: "beat" });
       }
     }, HEARTBEAT_MS);

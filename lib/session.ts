@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   ABSENCE_MS,
+  ERROR_GRACE_MS,
   ERRORS_PER_PENALTY_LINE,
   FOCUS_PENALTY_LINES,
   IDLE_MS,
@@ -28,6 +29,7 @@ export const sessionSchema = z.object({
   hardMode: z.boolean(),
   id: z.string(),
   idles: z.number().int().nonnegative(),
+  lastErrorAt: z.number().default(0),
   lastIdleAt: z.number(),
   lastSeenAt: z.number(),
   lineStartedAt: z.number(),
@@ -69,14 +71,26 @@ export const eventSchema = z.discriminatedUnion("type", [
 /** Everything the browser can report. The server decides what it means. */
 export type SessionEvent = z.infer<typeof eventSchema>;
 
-/** Side effect to trigger after an event was stored. */
-export type Outcome = "started" | "finished" | null;
+/** Something worth telling the admin about, sent after the event is stored. */
+export type Signal =
+  | { kind: "absent" }
+  | { awayMs: number; kind: "back" }
+  | { kind: "finished" }
+  | { kind: "idle" }
+  | { kind: "left" }
+  | { kind: "line" }
+  | { kind: "paste" }
+  | { kind: "peek" }
+  | { kind: "penalty" }
+  | { kind: "reflection" }
+  | { kind: "started" }
+  | { kind: "tooFast" };
 
 /** Result of applying one event. */
 export interface Applied {
   notices: string[];
-  outcome: Outcome;
   session: Session;
+  signals: Signal[];
 }
 
 /**
@@ -106,6 +120,7 @@ export const createSession = (input: {
   hardMode: input.hardMode,
   id: input.id,
   idles: 0,
+  lastErrorAt: 0,
   lastIdleAt: 0,
   lastSeenAt: input.now,
   lineStartedAt: input.now,
@@ -129,7 +144,13 @@ export const penaltyLines = (s: Session): number =>
   s.focusLosses * FOCUS_PENALTY_LINES +
   s.peeks * PEEK_PENALTY_LINES;
 
-const requiredLines = (s: Session): number => s.targetCans + penaltyLines(s);
+/**
+ * Lines to type before the last sentence, penalties included.
+ * @param s - The session.
+ * @returns Number of required lines.
+ */
+export const requiredLines = (s: Session): number =>
+  s.targetCans + penaltyLines(s);
 
 /**
  * Derives the phase from the counters, so it can never drift out of sync.
@@ -168,23 +189,34 @@ const isRunning = (s: Session): boolean => {
   return phase === "lines" || phase === "reflection";
 };
 
-const unchanged = (session: Session, notices: string[] = []): Applied => ({
-  notices,
-  outcome: null,
-  session,
-});
+const unchanged = (
+  session: Session,
+  notices: string[] = [],
+  signals: Signal[] = []
+): Applied => ({ notices, session, signals });
 
 const addError = (s: Session, typed: number, now: number): Session => ({
   ...s,
   correctChars: s.correctChars + Math.min(typed, targetOf(s).length),
   errors: s.errors + 1,
+  lastErrorAt: now,
   lineStartedAt: now,
 });
 
+const isPenaltyError = (s: Session): boolean =>
+  s.errors % ERRORS_PER_PENALTY_LINE === 0;
+
 const errorNotice = (s: Session): string[] =>
-  s.errors % ERRORS_PER_PENALTY_LINE === 0
+  isPenaltyError(s)
     ? [`${ERRORS_PER_PENALTY_LINE} Fehler. Eine Zeile mehr.`]
     : [];
+
+const errorSignals = (s: Session): Signal[] =>
+  isPenaltyError(s) ? [{ kind: "penalty" }] : [];
+
+// One autocorrect replacement can report several wrong inputs at once.
+const isSameIncident = (s: Session, now: number): boolean =>
+  now - s.lastErrorAt < ERROR_GRACE_MS;
 
 // Counts a gap with no ping at all (tab killed, phone locked) as leaving.
 const checkAbsence = (s: Session, now: number): Applied => {
@@ -192,9 +224,11 @@ const checkAbsence = (s: Session, now: number): Applied => {
     return unchanged(s);
   }
 
-  return unchanged({ ...s, absences: s.absences + 1, lineStartedAt: now }, [
-    `Du warst weg. +${IDLE_PENALTY_LINES} Zeilen.`,
-  ]);
+  return unchanged(
+    { ...s, absences: s.absences + 1, lineStartedAt: now },
+    [`Du warst weg. +${IDLE_PENALTY_LINES} Zeilen.`],
+    [{ kind: "absent" }]
+  );
 };
 
 const submitLine = (
@@ -213,13 +247,23 @@ const submitLine = (
   const target = targetOf(s);
 
   if (text !== target) {
-    return unchanged(addError(s, 0, now), ["Falsch. Von vorn."]);
+    const next = addError(s, 0, now);
+
+    return unchanged(
+      next,
+      ["Falsch. Von vorn.", ...errorNotice(next)],
+      errorSignals(next)
+    );
   }
 
   if (now - s.lineStartedAt < target.length * MIN_MS_PER_CHAR) {
-    return unchanged({ ...addError(s, 0, now), tooFast: s.tooFast + 1 }, [
-      "Zu schnell, um echt zu sein. Zählt als Fehler.",
-    ]);
+    const next = { ...addError(s, 0, now), tooFast: s.tooFast + 1 };
+
+    return unchanged(
+      next,
+      ["Zu schnell, um echt zu sein. Zählt als Fehler.", ...errorNotice(next)],
+      [{ kind: "tooFast" }, ...errorSignals(next)]
+    );
   }
 
   const counted: Session = {
@@ -229,14 +273,22 @@ const submitLine = (
   };
 
   if (phase === "reflection") {
-    return {
-      notices: [],
-      outcome: "finished",
-      session: { ...counted, finishedAt: now },
-    };
+    return unchanged(
+      { ...counted, finishedAt: now },
+      [],
+      [{ kind: "finished" }]
+    );
   }
 
-  return unchanged({ ...counted, completed: s.completed + 1 });
+  const next = { ...counted, completed: s.completed + 1 };
+
+  return unchanged(
+    next,
+    [],
+    phaseOf(next) === "reflection"
+      ? [{ kind: "line" }, { kind: "reflection" }]
+      : [{ kind: "line" }]
+  );
 };
 
 const applyRunning = (
@@ -250,9 +302,11 @@ const applyRunning = (
         return unchanged(s);
       }
 
-      return unchanged({ ...s, away: true, focusLosses: s.focusLosses + 1 }, [
-        `Du hast die Seite verlassen. +${FOCUS_PENALTY_LINES} Zeilen.`,
-      ]);
+      return unchanged(
+        { ...s, away: true, focusLosses: s.focusLosses + 1 },
+        [`Du hast die Seite verlassen. +${FOCUS_PENALTY_LINES} Zeilen.`],
+        [{ kind: "left" }]
+      );
     }
 
     case "idle": {
@@ -260,9 +314,11 @@ const applyRunning = (
         return unchanged(s);
       }
 
-      return unchanged({ ...s, idles: s.idles + 1, lastIdleAt: now }, [
-        `15 Sekunden nichts getippt. +${IDLE_PENALTY_LINES} Zeilen.`,
-      ]);
+      return unchanged(
+        { ...s, idles: s.idles + 1, lastIdleAt: now },
+        [`15 Sekunden nichts getippt. +${IDLE_PENALTY_LINES} Zeilen.`],
+        [{ kind: "idle" }]
+      );
     }
 
     case "peek": {
@@ -271,24 +327,35 @@ const applyRunning = (
         return unchanged(s);
       }
 
-      return unchanged({ ...s, peeks: s.peeks + 1 }, [
-        `Nochmal angeschaut. +${PEEK_PENALTY_LINES} Zeile.`,
-      ]);
+      return unchanged(
+        { ...s, peeks: s.peeks + 1 },
+        [`Nochmal angeschaut. +${PEEK_PENALTY_LINES} Zeile.`],
+        [{ kind: "peek" }]
+      );
     }
 
     case "paste": {
+      if (isSameIncident(s, now)) {
+        return unchanged(s, ["Einfügen ist nicht erlaubt."]);
+      }
+
       const next = addError(s, 0, now);
 
-      return unchanged(next, [
-        "Einfügen ist nicht erlaubt.",
-        ...errorNotice(next),
-      ]);
+      return unchanged(
+        next,
+        ["Einfügen ist nicht erlaubt.", ...errorNotice(next)],
+        [{ kind: "paste" }, ...errorSignals(next)]
+      );
     }
 
     case "error": {
+      if (isSameIncident(s, now)) {
+        return unchanged(s);
+      }
+
       const next = addError(s, event.typed, now);
 
-      return unchanged(next, errorNotice(next));
+      return unchanged(next, errorNotice(next), errorSignals(next));
     }
 
     case "line": {
@@ -324,6 +391,12 @@ export const applyEvent = (
 
   const absence = checkAbsence(claimed, now);
 
+  // Any sign of life after leaving means she is back.
+  const back: Signal[] =
+    claimed.away && event.type !== "blur" && isRunning(claimed)
+      ? [{ awayMs: now - claimed.lastSeenAt, kind: "back" }]
+      : [];
+
   const seen: Session = {
     ...absence.session,
     away: event.type === "blur" ? absence.session.away : false,
@@ -335,20 +408,24 @@ export const applyEvent = (
       return unchanged(seen);
     }
 
-    return {
-      notices: [],
-      outcome: "started",
-      session: { ...seen, lastIdleAt: now, lineStartedAt: now, startedAt: now },
-    };
+    return unchanged(
+      { ...seen, lastIdleAt: now, lineStartedAt: now, startedAt: now },
+      [],
+      [{ kind: "started" }]
+    );
   }
 
   if (!isRunning(seen)) {
-    return unchanged(seen, absence.notices);
+    return unchanged(seen, absence.notices, [...absence.signals, ...back]);
   }
 
   const applied = applyRunning(seen, event, now);
 
-  return { ...applied, notices: [...absence.notices, ...applied.notices] };
+  return {
+    notices: [...absence.notices, ...applied.notices],
+    session: applied.session,
+    signals: [...absence.signals, ...back, ...applied.signals],
+  };
 };
 
 /**

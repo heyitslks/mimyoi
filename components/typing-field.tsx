@@ -8,6 +8,8 @@ import type {
   SyntheticEvent,
 } from "react";
 
+import { ERROR_GRACE_MS } from "@/lib/rules";
+
 /** Anything other than plain, single-character typing is rejected. */
 const BLOCKED_INPUT_TYPES = new Set([
   "deleteByCut",
@@ -66,6 +68,7 @@ export const TypingField = ({
   const input = useRef<HTMLInputElement>(null);
   const accepted = useRef("");
   const composing = useRef(false);
+  const graceUntil = useRef(0);
 
   useImperativeHandle<HTMLInputElement | null, HTMLInputElement | null>(
     ref,
@@ -99,7 +102,8 @@ export const TypingField = ({
     }
   }, [disabled]);
 
-  const check = (element: HTMLInputElement) => {
+  // A keyboard that composes words commits them several letters at once.
+  const check = (element: HTMLInputElement, allowWord: boolean) => {
     const { value } = element;
     const previous = accepted.current;
 
@@ -116,10 +120,11 @@ export const TypingField = ({
 
     onKeystroke();
 
-    const isOneMoreChar =
-      value.length === previous.length + 1 && value.startsWith(previous);
+    const grows = allowWord
+      ? value.startsWith(previous)
+      : value.length === previous.length + 1 && value.startsWith(previous);
 
-    if (isOneMoreChar && target.startsWith(value)) {
+    if (grows && target.startsWith(value)) {
       accepted.current = value;
 
       if (value === target) {
@@ -131,18 +136,28 @@ export const TypingField = ({
 
     accepted.current = "";
     element.value = "";
+
+    // Autocorrect swaps a word and then adds the space, which arrives as a
+    // second wrong input. Everything right after an error is the same error.
+    const now = Date.now();
+
+    if (now < graceUntil.current) {
+      return;
+    }
+
+    graceUntil.current = now + ERROR_GRACE_MS;
     onError(previous.length);
   };
 
   const handleInput = (event: SyntheticEvent<HTMLInputElement>) => {
     if (!composing.current) {
-      check(event.currentTarget);
+      check(event.currentTarget, false);
     }
   };
 
   const handleCompositionEnd = (event: CompositionEvent<HTMLInputElement>) => {
     composing.current = false;
-    check(event.currentTarget);
+    check(event.currentTarget, true);
   };
 
   const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
@@ -159,7 +174,10 @@ export const TypingField = ({
       className="border-muted text-foreground caret-accent focus:border-accent w-full border-0 border-b-2 bg-transparent py-4 font-mono text-lg outline-none disabled:opacity-50"
       data-1p-ignore
       data-bwignore
+      data-enable-grammarly="false"
       data-form-type="other"
+      data-gramm="false"
+      data-gramm_editor="false"
       data-lpignore="true"
       disabled={disabled}
       enterKeyHint="done"

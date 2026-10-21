@@ -38,13 +38,13 @@ const handleEvent = async (
   }
 
   const now = Date.now();
-  const { notices, outcome, session: next } = applyEvent(session, event, now);
+  const { notices, session: next, signals } = applyEvent(session, event, now);
 
   await store().put(next);
 
-  if (outcome !== null) {
+  if (signals.length > 0) {
     after(async () => {
-      await notify(next, outcome);
+      await notify(next, signals);
     });
   }
 
